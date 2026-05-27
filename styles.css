@@ -1,0 +1,48 @@
+.context-prism-modal {
+  --context-prism-border: var(--background-modifier-border);
+}
+
+.context-prism-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.context-prism-suggestion {
+  border: 1px solid var(--context-prism-border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.context-prism-suggestion-header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.context-prism-score {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.context-prism-reasons {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-top: 6px;
+}
+
+.context-prism-snippet {
+  margin: 8px 0 0;
+}
+
+.context-prism-empty {
+  color: var(--text-muted);
+}
+
+.context-prism-status {
+  cursor: pointer;
+}

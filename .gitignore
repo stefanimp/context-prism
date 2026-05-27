@@ -1,0 +1,11 @@
+node_modules
+main.js
+*.map
+data.json
+.DS_Store
+dist
+coverage
+*.log
+.obsidian
+.env
+.env.*
