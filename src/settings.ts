@@ -1,22 +1,9 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
+import { DEFAULT_SETTINGS } from "./default-settings";
 import type ContextPrismPlugin from "./main";
 import type { IndexLanguage, ContextPrismSettings } from "./types";
 
-export const DEFAULT_SETTINGS: ContextPrismSettings = {
-  includeFolders: [],
-  excludeFolders: [],
-  indexLanguages: ["multilingual"],
-  minScore: 0.08,
-  maxSuggestions: 12,
-  autoPrepareContext: true,
-  contextSuggestionCount: 8,
-  contextSnippetLength: 420,
-  contextTokenBudget: 1800,
-  footerHeading: "Related notes",
-  includeAliases: true,
-  includeFrontmatter: false,
-  showScores: true
-};
+export { DEFAULT_SETTINGS };
 
 export class ContextPrismSettingTab extends PluginSettingTab {
   constructor(app: App, private readonly plugin: ContextPrismPlugin) {
@@ -95,6 +82,31 @@ export class ContextPrismSettingTab extends PluginSettingTab {
           if (!Number.isNaN(parsed)) {
             this.plugin.settings.minScore = parsed;
             await this.plugin.saveSettings();
+          }
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Use metadata ranking")
+      .setDesc("Use area, topics, and tags as ranking evidence. Disable this if metadata creates noisy matches.")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.useMetadataRanking).onChange(async (value) => {
+          this.plugin.settings.useMetadataRanking = value;
+          await this.plugin.saveSettings();
+          await this.plugin.prepareContextForActiveFile();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Metadata weight")
+      .setDesc("Boost applied to shared metadata. Recommended range: 0 to 0.15.")
+      .addText((text) =>
+        text.setValue(String(this.plugin.settings.metadataWeight)).onChange(async (value) => {
+          const parsed = Number(value);
+          if (!Number.isNaN(parsed) && parsed >= 0) {
+            this.plugin.settings.metadataWeight = Math.min(parsed, 0.2);
+            await this.plugin.saveSettings();
+            await this.plugin.prepareContextForActiveFile();
           }
         })
       );

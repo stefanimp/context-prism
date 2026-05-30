@@ -20,10 +20,11 @@ Nothing is sent to external services. The index is built locally from Markdown f
 - Passive suggestions for the active note
 - Multilingual indexing profiles: `multilingual`, `en`, `es`, `fr`, `de`, `it`, `pt`
 - Mixed-language vault support through comma-separated language profiles
-- Title, alias, metadata, and TF-IDF vocabulary ranking
+- Title, alias, metadata, TF-IDF, and BM25 lexical ranking
 - Explainable candidate reasons and snippets
 - Optional review modal for inserting durable wiki-links
 - Folder include and exclude filters
+- Fast lexical retrieval designed to stay responsive in large vaults
 - No telemetry, network calls, or external AI dependency
 
 ## Why It Exists
@@ -36,6 +37,19 @@ AI assistants often waste context by reading too many notes before discovering w
 4. The assistant receives focused evidence instead of broad vault dumps.
 
 The result is a more controlled workflow for large vaults, multilingual notes, and AI-assisted knowledge work.
+
+## Design Priorities
+
+- Local-first: note content stays inside the vault.
+- Fast by default: ranking uses lightweight lexical signals instead of remote models or embedding generation.
+- Explainable: every candidate includes visible ranking reasons.
+- Practical for AI: context packs favor useful snippets over broad note dumps.
+
+## Ranking Controls
+
+Context Prism combines TF-IDF cosine similarity with BM25-style term scoring. Titles, headings, aliases, metadata, and note bodies are weighted separately so strong structural signals can rank without turning every repeated template phrase into a match. Metadata can also boost candidates through shared `area`, `topics`, and `tags`.
+
+If metadata creates noisy matches in a vault, disable `Use metadata ranking` or lower `Metadata weight` in settings.
 
 ## Usage
 

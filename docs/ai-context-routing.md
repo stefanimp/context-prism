@@ -30,6 +30,8 @@ Without a local retrieval step, an AI workflow often loads many notes just to di
 - snippets are capped
 - token estimates make the tradeoff visible
 
+The retrieval step is intentionally lightweight. Context Prism combines TF-IDF and BM25-style lexical ranking instead of slower semantic processing so context packs can be prepared while the user keeps working.
+
 ## Commands
 
 - `Copy AI context pack for current note`: copies the compact context pack.

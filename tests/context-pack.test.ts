@@ -16,6 +16,8 @@ const settings: ContextPrismSettings = {
   footerHeading: "Related notes",
   includeAliases: true,
   includeFrontmatter: false,
+  useMetadataRanking: true,
+  metadataWeight: 0.08,
   showScores: true
 };
 
@@ -32,6 +34,7 @@ describe("context packs", () => {
           aliases: [],
           score: 0.4,
           cosine: 0.3,
+          bm25: 0.2,
           exactMatch: false,
           metadataScore: 0.2,
           sharedTerms: ["ranking"],

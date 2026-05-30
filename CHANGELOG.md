@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+## 0.4.0
+
+- Added BM25-style lexical scoring alongside TF-IDF cosine similarity.
+- Added field-weighted ranking for titles, headings, aliases, metadata, and note bodies.
+- Added settings to disable metadata ranking and tune metadata weight.
+- Disabled metadata influence across ranking signals when metadata ranking is turned off.
+- Refined ranking to reduce noisy alias-only matches in multilingual vaults.
+- Added source-title matching so entity-centered MOC notes can find notes that reference the source title.
+- Added a weak-short-note guard so near-empty index notes need stronger evidence before ranking.
+- Stopped using generic `type` frontmatter as a metadata ranking signal.
+- Excluded common template folders by default on new installs.
+- Expanded multilingual stopwords for low-signal terms such as `non`, `no`, `si`, `note`, and structural headings like `notas`, `tareas`, and `relacionadas`.
+- Documented fast local retrieval as a core design priority.
+
 ## 0.3.1
 
 - Shortened the plugin directory description.

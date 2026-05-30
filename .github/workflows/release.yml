@@ -38,6 +38,17 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const version=JSON.parse(fs.readFileSync('manifest.json','utf8')).version; const tag=process.env.GITHUB_REF_NAME; if (version !== tag) { console.error('manifest version ' + version + ' does not match tag ' + tag); process.exit(1); }"
 
+      - name: Write release notes
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const tag = process.env.GITHUB_REF_NAME;
+          const changelog = fs.readFileSync("CHANGELOG.md", "utf8");
+          const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const match = changelog.match(new RegExp(`## ${escapedTag}\\n([\\s\\S]*?)(?=\\n## |$)`));
+          fs.writeFileSync("release-notes.md", match ? `${match[1].trim()}\n` : `Release ${tag}\n`);
+          NODE
+
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -45,5 +56,5 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" main.js manifest.json styles.css --clobber
           else
-            gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css --title "$GITHUB_REF_NAME" --notes-file CHANGELOG.md
+            gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css --title "$GITHUB_REF_NAME" --notes-file release-notes.md
           fi

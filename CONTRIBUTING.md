@@ -15,5 +15,6 @@ Use a development vault when testing plugin behavior.
 
 - Keep changes focused.
 - Add tests for ranking or normalization changes.
+- Use synthetic fixtures in tests and documentation.
 - Run `npm run build` and `npm test` before opening a pull request.
 - Document user-facing behavior in `README.md`.

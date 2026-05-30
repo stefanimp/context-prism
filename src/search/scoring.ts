@@ -44,16 +44,58 @@ export function cosineSimilarity(a: Map<string, number>, b: Map<string, number>)
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+export function bm25Similarity(
+  queryTerms: Map<string, number>,
+  candidateTerms: Map<string, number>,
+  idf: Map<string, number>,
+  candidateLength: number,
+  averageDocumentLength: number,
+  k1 = 1.2,
+  b = 0.75
+): number {
+  if (queryTerms.size === 0 || candidateTerms.size === 0 || averageDocumentLength <= 0) {
+    return 0;
+  }
+
+  let score = 0;
+  let maxScore = 0;
+  const normalizedLength = candidateLength / averageDocumentLength;
+
+  for (const term of queryTerms.keys()) {
+    const termIdf = idf.get(term) ?? 0;
+    if (termIdf <= 0) {
+      continue;
+    }
+
+    maxScore += termIdf * (k1 + 1);
+    const frequency = candidateTerms.get(term) ?? 0;
+    if (frequency === 0) {
+      continue;
+    }
+
+    const denominator = frequency + k1 * (1 - b + b * normalizedLength);
+    score += termIdf * ((frequency * (k1 + 1)) / denominator);
+  }
+
+  if (maxScore === 0) {
+    return 0;
+  }
+
+  return Math.min(1, score / maxScore);
+}
+
 export function scoreCandidate(
   cosine: number,
-  exactMatch: boolean,
-  metadataScore: number
+  bm25: number,
+  mentionScore: number,
+  metadataScore: number,
+  metadataWeight: number
 ): number {
-  const exactBoost = exactMatch ? 0.18 : 0;
-  const metadataBoost = Math.min(metadataScore, 1) * 0.04;
-  const lexicalScore = Math.min(cosine, 1) * 0.78;
+  const mentionBoost = Math.min(Math.max(mentionScore, 0), 0.14);
+  const metadataBoost = Math.min(metadataScore, 1) * Math.min(Math.max(metadataWeight, 0), 0.2);
+  const lexicalScore = Math.min(cosine, 1) * 0.52 + Math.min(bm25, 1) * 0.3;
 
-  return Math.min(1, lexicalScore + exactBoost + metadataBoost);
+  return Math.min(1, lexicalScore + mentionBoost + metadataBoost);
 }
 
 export function topSharedTerms(

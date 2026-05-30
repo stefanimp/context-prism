@@ -1,12 +1,35 @@
-import { App, CachedMetadata, normalizePath, TFile } from "obsidian";
-import { buildTfIdfVector, cosineSimilarity, scoreCandidate, topSharedTerms } from "./search/scoring";
-import { countTerms, makePreview, normalizePhrase, stripMarkdownForIndex, tokenize } from "./text/normalize";
+import type { App, CachedMetadata, TFile } from "obsidian";
+import { bm25Similarity, buildTfIdfVector, cosineSimilarity, scoreCandidate, topSharedTerms } from "./search/scoring";
+import { makePreview, normalizePhrase, stripMarkdownForIndex, tokenize } from "./text/normalize";
 import { estimateTokens } from "./token-estimator";
 import { IndexedNote, IndexStats, LinkSuggestion, ContextPrismSettings } from "./types";
+
+const TITLE_MENTION_BOOST = 0.12;
+const ALIAS_MENTION_BOOST = 0.04;
+const SOURCE_TITLE_IN_TITLE_BOOST = 0.14;
+const SOURCE_TITLE_IN_METADATA_BOOST = 0.13;
+const SOURCE_TITLE_IN_TERMS_BOOST = 0.1;
+const MIN_SINGLE_TOKEN_ALIAS_LENGTH = 6;
+const SHORT_NOTE_TOKEN_THRESHOLD = 30;
+const STRONG_METADATA_SCORE = 0.67;
+const TITLE_FIELD_WEIGHT = 3;
+const HEADING_FIELD_WEIGHT = 1.6;
+const ALIAS_FIELD_WEIGHT = 1.2;
+const BODY_FIELD_WEIGHT = 1;
+const METADATA_FIELD_WEIGHT = 1;
+
+type MentionReason =
+  | "title"
+  | "alias"
+  | "source-title-title"
+  | "source-title-metadata"
+  | "source-title-content"
+  | null;
 
 export class LinkIndexService {
   private docs = new Map<string, IndexedNote>();
   private idf = new Map<string, number>();
+  private averageDocumentLength = 0;
   private dirty = true;
   private stats: IndexStats = {
     notes: 0,
@@ -43,23 +66,27 @@ export class LinkIndexService {
 
     const docs = new Map<string, IndexedNote>();
     const documentFrequency = new Map<string, number>();
+    let totalTermCount = 0;
 
     for (const file of files) {
       const markdown = await this.app.vault.cachedRead(file);
       const cache = this.app.metadataCache.getFileCache(file);
       const aliases = settings.includeAliases ? readAliases(cache) : [];
       const headings = (cache?.headings ?? []).map((heading) => heading.heading);
-      const metadataTerms = readMetadataTerms(cache);
-      const indexText = [
-        file.basename,
-        aliases.join(" "),
-        aliases.join(" "),
-        headings.join(" "),
-        metadataTerms.join(" "),
-        stripMarkdownForIndex(markdown, settings.includeFrontmatter)
-      ].join("\n");
-      const terms = countTerms(tokenize(indexText, settings.indexLanguages));
+      const metadataTerms = settings.useMetadataRanking ? readMetadataTerms(cache) : [];
       const plainText = stripMarkdownForIndex(markdown, settings.includeFrontmatter);
+      const terms = buildWeightedTermCounts(
+        [
+          { text: file.basename, weight: TITLE_FIELD_WEIGHT },
+          { text: aliases.join(" "), weight: ALIAS_FIELD_WEIGHT },
+          { text: headings.join(" "), weight: HEADING_FIELD_WEIGHT },
+          { text: metadataTerms.join(" "), weight: METADATA_FIELD_WEIGHT },
+          { text: plainText, weight: BODY_FIELD_WEIGHT }
+        ],
+        settings.indexLanguages
+      );
+      const termCount = countAllTerms(terms);
+      totalTermCount += termCount;
 
       for (const term of terms.keys()) {
         documentFrequency.set(term, (documentFrequency.get(term) ?? 0) + 1);
@@ -73,6 +100,7 @@ export class LinkIndexService {
         headings,
         metadataTerms,
         terms,
+        termCount,
         vector: new Map(),
         previewText: makePreview(markdown),
         estimatedTokens: estimateTokens(plainText),
@@ -93,6 +121,7 @@ export class LinkIndexService {
 
     this.docs = docs;
     this.idf = idf;
+    this.averageDocumentLength = docs.size === 0 ? 0 : totalTermCount / docs.size;
     this.dirty = false;
     this.stats = {
       notes: docs.size,
@@ -122,10 +151,23 @@ export class LinkIndexService {
         continue;
       }
 
-      const exactMatch = this.hasTitleOrAliasMention(normalizedSource, candidate);
-      const metadataScore = metadataOverlap(sourceDoc.metadataTerms, candidate.metadataTerms);
+      const mention = this.getMentionSignal(normalizedSource, sourceDoc, candidate, settings);
+      const metadataScore = settings.useMetadataRanking
+        ? metadataOverlap(sourceDoc.metadataTerms, candidate.metadataTerms)
+        : 0;
+      if (isWeakShortCandidate(candidate, mention.score, metadataScore)) {
+        continue;
+      }
+
       const cosine = cosineSimilarity(sourceDoc.vector, candidate.vector);
-      const score = scoreCandidate(cosine, exactMatch, metadataScore);
+      const bm25 = bm25Similarity(
+        sourceDoc.terms,
+        candidate.terms,
+        this.idf,
+        candidate.termCount,
+        this.averageDocumentLength
+      );
+      const score = scoreCandidate(cosine, bm25, mention.score, metadataScore, settings.metadataWeight);
 
       if (score < settings.minScore) {
         continue;
@@ -138,10 +180,11 @@ export class LinkIndexService {
         aliases: candidate.aliases,
         score,
         cosine,
-        exactMatch,
+        bm25,
+        exactMatch: mention.score > 0,
         metadataScore,
         sharedTerms,
-        reasons: buildReasons(exactMatch, metadataScore, sharedTerms),
+        reasons: buildReasons(mention.reason, metadataScore, sharedTerms),
         snippet: buildSnippet(candidate.previewText, sharedTerms),
         estimatedTokens: candidate.estimatedTokens
       });
@@ -177,16 +220,43 @@ export class LinkIndexService {
     return targets;
   }
 
-  private hasTitleOrAliasMention(normalizedSource: string, candidate: IndexedNote): boolean {
-    const phrases = [candidate.title, ...candidate.aliases]
-      .map((phrase) => normalizePhrase(phrase))
-      .filter(Boolean);
+  private getMentionSignal(
+    normalizedSource: string,
+    sourceDoc: IndexedNote,
+    candidate: IndexedNote,
+    settings: ContextPrismSettings
+  ): { score: number; reason: MentionReason } {
+    const candidateMention = this.getCandidateMentionSignal(normalizedSource, candidate);
+    const sourceMention = getSourceTitleSignal(sourceDoc, candidate, settings);
 
-    return phrases.some((phrase) => ` ${normalizedSource} `.includes(` ${phrase} `));
+    return candidateMention.score >= sourceMention.score ? candidateMention : sourceMention;
+  }
+
+  private getCandidateMentionSignal(
+    normalizedSource: string,
+    candidate: IndexedNote
+  ): { score: number; reason: "title" | "alias" | null } {
+    const normalizedTitle = normalizePhrase(candidate.title);
+    if (normalizedTitle && containsPhrase(normalizedSource, normalizedTitle)) {
+      return { score: TITLE_MENTION_BOOST, reason: "title" };
+    }
+
+    for (const alias of candidate.aliases) {
+      const normalizedAlias = normalizePhrase(alias);
+      if (!normalizedAlias || !isInformativeAlias(normalizedAlias)) {
+        continue;
+      }
+
+      if (containsPhrase(normalizedSource, normalizedAlias)) {
+        return { score: ALIAS_MENTION_BOOST, reason: "alias" };
+      }
+    }
+
+    return { score: 0, reason: null };
   }
 
   private shouldIndexFile(file: TFile, settings: ContextPrismSettings): boolean {
-    const path = normalizePath(file.path);
+    const path = normalizeVaultPath(file.path);
     const includeFolders = settings.includeFolders.map(normalizeFolder);
     const excludeFolders = settings.excludeFolders.map(normalizeFolder);
     const included =
@@ -198,8 +268,76 @@ export class LinkIndexService {
   }
 }
 
+function getSourceTitleSignal(
+  sourceDoc: IndexedNote,
+  candidate: IndexedNote,
+  settings: ContextPrismSettings
+): {
+  score: number;
+  reason: MentionReason;
+} {
+  const normalizedSourceTitle = normalizePhrase(sourceDoc.title);
+  const sourceTitleTerms = tokenize(normalizedSourceTitle, settings.indexLanguages);
+  if (!isInformativeTitle(sourceTitleTerms)) {
+    return { score: 0, reason: null };
+  }
+
+  const normalizedCandidateTitle = normalizePhrase(candidate.title);
+  if (containsPhrase(normalizedCandidateTitle, normalizedSourceTitle)) {
+    return { score: SOURCE_TITLE_IN_TITLE_BOOST, reason: "source-title-title" };
+  }
+
+  if (metadataContainsTerms(candidate.metadataTerms, sourceTitleTerms)) {
+    return { score: SOURCE_TITLE_IN_METADATA_BOOST, reason: "source-title-metadata" };
+  }
+
+  if (termsContainAll(candidate.terms, sourceTitleTerms)) {
+    return { score: SOURCE_TITLE_IN_TERMS_BOOST, reason: "source-title-content" };
+  }
+
+  return { score: 0, reason: null };
+}
+
+function isInformativeTitle(titleTerms: string[]): boolean {
+  if (titleTerms.length === 0) {
+    return false;
+  }
+
+  return titleTerms.some((term) => term.length >= 3);
+}
+
+function metadataContainsTerms(metadataTerms: string[], requiredTerms: string[]): boolean {
+  const normalizedMetadataTerms = new Set(
+    metadataTerms
+      .flatMap((term) => normalizePhrase(term).split(" "))
+      .filter(Boolean)
+  );
+
+  return requiredTerms.every((term) => normalizedMetadataTerms.has(term));
+}
+
+function termsContainAll(terms: Map<string, number>, requiredTerms: string[]): boolean {
+  return requiredTerms.every((term) => terms.has(term));
+}
+
+function isWeakShortCandidate(
+  candidate: IndexedNote,
+  mentionScore: number,
+  metadataScore: number
+): boolean {
+  return (
+    candidate.estimatedTokens < SHORT_NOTE_TOKEN_THRESHOLD &&
+    mentionScore === 0 &&
+    metadataScore < STRONG_METADATA_SCORE
+  );
+}
+
 function normalizeFolder(folder: string): string {
-  return normalizePath(folder.trim()).replace(/\/$/, "");
+  return normalizeVaultPath(folder.trim()).replace(/\/$/, "");
+}
+
+function normalizeVaultPath(path: string): string {
+  return path.trim().replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 
 function readAliases(cache: CachedMetadata | null): string[] {
@@ -215,8 +353,7 @@ function readMetadataTerms(cache: CachedMetadata | null): string[] {
   return [
     ...collectStrings(frontmatter.area),
     ...collectStrings(frontmatter.topics),
-    ...collectStrings(frontmatter.tags),
-    ...collectStrings(frontmatter.type)
+    ...collectStrings(frontmatter.tags)
   ];
 }
 
@@ -236,6 +373,35 @@ function collectStrings(value: unknown): string[] {
   return [];
 }
 
+function countAllTerms(terms: Map<string, number>): number {
+  let total = 0;
+
+  for (const count of terms.values()) {
+    total += count;
+  }
+
+  return total;
+}
+
+function buildWeightedTermCounts(
+  fields: Array<{ text: string; weight: number }>,
+  languages: ContextPrismSettings["indexLanguages"]
+): Map<string, number> {
+  const terms = new Map<string, number>();
+
+  for (const field of fields) {
+    if (!field.text || field.weight <= 0) {
+      continue;
+    }
+
+    for (const term of tokenize(field.text, languages)) {
+      terms.set(term, (terms.get(term) ?? 0) + field.weight);
+    }
+  }
+
+  return terms;
+}
+
 function metadataOverlap(source: string[], candidate: string[]): number {
   const sourceTerms = new Set(source.map(normalizePhrase).filter(Boolean));
   const candidateTerms = new Set(candidate.map(normalizePhrase).filter(Boolean));
@@ -250,11 +416,44 @@ function metadataOverlap(source: string[], candidate: string[]): number {
   return Math.min(overlap / 3, 1);
 }
 
-function buildReasons(exactMatch: boolean, metadataScore: number, sharedTerms: string[]): string[] {
+function containsPhrase(normalizedSource: string, normalizedPhrase: string): boolean {
+  return ` ${normalizedSource} `.includes(` ${normalizedPhrase} `);
+}
+
+function isInformativeAlias(normalizedAlias: string): boolean {
+  const tokens = normalizedAlias.split(" ").filter(Boolean);
+  if (tokens.length !== 1) {
+    return true;
+  }
+
+  return tokens[0].length >= MIN_SINGLE_TOKEN_ALIAS_LENGTH;
+}
+
+function buildReasons(
+  mentionReason: MentionReason,
+  metadataScore: number,
+  sharedTerms: string[]
+): string[] {
   const reasons: string[] = [];
 
-  if (exactMatch) {
-    reasons.push("Title or alias appears in the note");
+  if (mentionReason === "title") {
+    reasons.push("Title appears in the note");
+  }
+
+  if (mentionReason === "alias") {
+    reasons.push("Alias appears in the note");
+  }
+
+  if (mentionReason === "source-title-title") {
+    reasons.push("Source title appears in candidate title");
+  }
+
+  if (mentionReason === "source-title-metadata") {
+    reasons.push("Candidate metadata references source title");
+  }
+
+  if (mentionReason === "source-title-content") {
+    reasons.push("Candidate content references source title");
   }
 
   if (metadataScore > 0) {

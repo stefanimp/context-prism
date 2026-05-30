@@ -16,10 +16,28 @@
 The score combines:
 
 - TF-IDF cosine similarity
-- exact title or alias mention
-- shared frontmatter metadata
+- BM25-style query-to-document scoring
+- field-weighted terms from titles, headings, aliases, metadata, and note bodies
+- title mentions
+- lower-weight alias mentions
+- source-title references in candidate titles, metadata, or content
+- shared frontmatter metadata from areas, topics, and tags
 
 Existing links and self-links are excluded before ranking.
+
+Templates are excluded by default on new installs. The ranking layer also avoids using generic `type` metadata, because fields such as `type: note` tend to connect unrelated files.
+
+Alias mentions are intentionally weaker than title mentions. Single-word aliases are useful, but they can be noisy in multilingual vaults when common verbs or generic terms appear in unrelated notes.
+
+For entity-centered index notes, the source note title is also treated as a lightweight query signal. If the active note is `Project Atlas`, candidates whose title, topics, or content reference `Project Atlas` receive a transparent boost. This helps short index notes avoid being dominated by generic headings such as "Related notes" or "Related tasks".
+
+Very short candidates need stronger evidence before ranking. This prevents near-empty index notes from appearing only because they share generic metadata or structural headings.
+
+Metadata ranking is configurable. Users can disable metadata boosts or tune the metadata weight when `area`, `topics`, or `tags` introduce noise.
+
+## Performance
+
+Context Prism prioritizes responsive local retrieval. The index uses precomputed term maps, TF-IDF vectors, and document lengths for BM25-style scoring, then ranks candidates with cheap lexical and metadata operations. It does not call remote services, generate embeddings, or perform model inference during ranking.
 
 ## Language Profiles
 

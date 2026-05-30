@@ -13,6 +13,8 @@ export interface ContextPrismSettings {
   footerHeading: string;
   includeAliases: boolean;
   includeFrontmatter: boolean;
+  useMetadataRanking: boolean;
+  metadataWeight: number;
   showScores: boolean;
 }
 
@@ -24,6 +26,7 @@ export interface IndexedNote {
   headings: string[];
   metadataTerms: string[];
   terms: Map<string, number>;
+  termCount: number;
   vector: Map<string, number>;
   previewText: string;
   estimatedTokens: number;
@@ -36,6 +39,7 @@ export interface LinkSuggestion {
   aliases: string[];
   score: number;
   cosine: number;
+  bm25: number;
   exactMatch: boolean;
   metadataScore: number;
   sharedTerms: string[];
