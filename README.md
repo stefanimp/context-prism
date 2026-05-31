@@ -4,7 +4,7 @@
   <p>Prepare compact local context packs so AI tools can inspect fewer notes before they answer.</p>
 </div>
 
-![Context Prism hero](assets/context-prism-hero.svg)
+![Context Prism hero](assets/Context-Prism.png)
 
 Context Prism turns an Obsidian vault into a local retrieval layer. It ranks notes related to the active file, explains why they were selected, estimates avoided context, and copies a compact Markdown pack that can be pasted into ChatGPT, Claude, Codex, Antigravity, Cursor, or any assistant that benefits from focused context.
 
