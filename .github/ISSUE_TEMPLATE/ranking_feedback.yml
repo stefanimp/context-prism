@@ -1,0 +1,38 @@
+name: Ranking feedback
+description: Share feedback about retrieval quality, snippets, or token-aware context packs.
+title: "[Ranking]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow
+      description: What were you trying to do with the context pack or link suggestions?
+      placeholder: "Example: I opened a project note and expected the context pack to include roadmap, meeting, and architecture notes."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected candidates
+      description: Which notes should have appeared, and why?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual candidates
+      description: Which suggestions were missing, irrelevant, or poorly ranked?
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Minimal example
+      description: Use synthetic examples or redacted excerpts if you include note content.
+  - type: textarea
+    id: settings
+    attributes:
+      label: Relevant settings
+      description: Include language profile, metadata ranking, metadata weight, and suggestion limit if relevant.

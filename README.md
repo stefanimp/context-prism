@@ -53,11 +53,32 @@ If metadata creates noisy matches in a vault, disable `Use metadata ranking` or 
 
 ## Usage
 
-1. Open a Markdown note.
+After installing and enabling Context Prism:
+
+1. Open a Markdown note. The active note becomes the retrieval query.
 2. Check the status bar for prepared context candidates.
-3. Run `Copy AI context pack for current note`.
-4. Paste the pack into your AI assistant before asking for analysis, writing help, or implementation planning.
-5. Optionally run `Review link suggestions for current note` to insert selected links under the configured footer heading.
+3. Run `Copy AI context pack for current note` from the command palette.
+4. Paste the generated Markdown pack into ChatGPT, Claude, Codex, Cursor, or another assistant before asking for analysis, writing help, or implementation planning.
+5. Ask the assistant to use the provided local candidates first before requesting broader vault context.
+
+For manual linking, run `Review link suggestions for current note`, select the useful candidates, and insert them under the configured footer heading.
+
+Use settings to adjust the suggestion limit, indexed languages, included or excluded folders, metadata ranking, and metadata weight.
+
+## Feedback and Feature Requests
+
+Context Prism is built around practical retrieval quality: the important question is whether it surfaces the notes you would actually give to an AI assistant.
+
+Feedback is especially useful when it covers:
+
+- notes that should have appeared but did not
+- candidates that looked related but were not useful
+- snippets that were too short, too long, or poorly centered
+- multilingual vault behavior
+- token estimates and whether they help the workflow
+- feature ideas for making context packs easier to use
+
+Open an issue through [GitHub Issues](https://github.com/stefanimp/context-prism/issues/new/choose). For ranking feedback, prefer small synthetic examples or redacted note excerpts that show the retrieval problem clearly.
 
 ## Language Support
 

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.4.1
+
+- Expanded public usage instructions for the AI context pack workflow.
+- Added a feedback section and ranking feedback issue template.
+- Added GitHub artifact attestations for release assets.
+- Updated the Vitest development dependency to keep dependency audits clean.
+
 ## 0.4.0
 
 - Added BM25-style lexical scoring alongside TF-IDF cosine similarity.
