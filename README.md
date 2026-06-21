@@ -18,6 +18,9 @@ Nothing is sent to external services. The index is built locally from Markdown f
 
 ![Context Prism demo](assets/context-prism-demo.gif)
 
+For a text-only walkthrough with fictional notes, see the
+[synthetic demo](docs/synthetic-demo.md).
+
 ## Highlights
 
 - Token-aware context packs for AI-assisted workflows
@@ -137,6 +140,7 @@ Reload Obsidian and enable Context Prism under Community plugins.
 - [Architecture](docs/architecture.md)
 - [AI context routing](docs/ai-context-routing.md)
 - [AI assistant compatibility](docs/ai-assistant-compatibility.md)
+- [Synthetic demo](docs/synthetic-demo.md)
 - [Testing](docs/testing.md)
 
 ## Release Checklist
