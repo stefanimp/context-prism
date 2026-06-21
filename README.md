@@ -10,6 +10,10 @@ Context Prism turns an Obsidian vault into a local retrieval layer. It ranks not
 
 Nothing is sent to external services. The index is built locally from Markdown files through the Obsidian plugin API.
 
+> Trying Context Prism? I am collecting
+> [3-minute retrieval feedback](https://github.com/stefanimp/context-prism/issues/1)
+> on whether it surfaces the notes you would actually give to an AI assistant.
+
 ## Demo
 
 ![Context Prism demo](assets/context-prism-demo.gif)
@@ -78,7 +82,13 @@ Feedback is especially useful when it covers:
 - token estimates and whether they help the workflow
 - feature ideas for making context packs easier to use
 
-Open an issue through [GitHub Issues](https://github.com/stefanimp/context-prism/issues/new/choose). For ranking feedback, prefer small synthetic examples or redacted note excerpts that show the retrieval problem clearly.
+If you try the plugin, please leave
+[3-minute retrieval feedback](https://github.com/stefanimp/context-prism/issues/1).
+The most useful answer is whether Context Prism surfaced the notes you would have copied manually into an AI assistant.
+
+For bugs, feature requests, or longer ranking reports, open an issue through
+[GitHub Issues](https://github.com/stefanimp/context-prism/issues/new/choose).
+For ranking feedback, prefer small synthetic examples or redacted note excerpts that show the retrieval problem clearly.
 
 ## Language Support
 
