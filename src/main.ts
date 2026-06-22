@@ -7,7 +7,7 @@ import { formatTokenCount } from "./token-estimator";
 import { ContextPackReviewModal } from "./ui/context-pack-review-modal";
 import { ReleaseNotesModal } from "./ui/release-notes-modal";
 import { SuggestionsModal } from "./ui/suggestions-modal";
-import { LinkSuggestion, ContextPrismSettings } from "./types";
+import type { IndexLanguage, LinkSuggestion, ContextPrismSettings } from "./types";
 
 export default class ContextPrismPlugin extends Plugin {
   settings: ContextPrismSettings = DEFAULT_SETTINGS;
@@ -15,6 +15,7 @@ export default class ContextPrismPlugin extends Plugin {
   private statusBarItem!: HTMLElement;
   private activeSuggestions: LinkSuggestion[] = [];
   private activeSuggestionPath: string | null = null;
+  private activeSuggestionMode: SuggestionMode | null = null;
   private prepareTimer: number | null = null;
 
   async onload(): Promise<void> {
@@ -66,7 +67,7 @@ export default class ContextPrismPlugin extends Plugin {
 
     this.addCommand({
       id: "show-release-notes",
-      name: "Show what's new in Context Prism",
+      name: "Show what's new",
       callback: () => {
         this.openReleaseNotes();
       }
@@ -117,10 +118,8 @@ export default class ContextPrismPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = {
-      ...DEFAULT_SETTINGS,
-      ...(await this.loadData())
-    };
+    const loadedData: unknown = await this.loadData();
+    this.settings = normalizeSettings(loadedData);
   }
 
   async saveSettings(): Promise<void> {
@@ -158,13 +157,15 @@ export default class ContextPrismPlugin extends Plugin {
     if (!file || !this.settings.autoPrepareContext) {
       this.activeSuggestions = [];
       this.activeSuggestionPath = null;
+      this.activeSuggestionMode = null;
       this.statusBarItem.setText("Context Prism");
       return;
     }
 
     try {
-      this.activeSuggestions = await this.indexService.suggestFor(file);
+      this.activeSuggestions = await this.indexService.suggestFor(file, { excludeExistingLinks: false });
       this.activeSuggestionPath = file.path;
+      this.activeSuggestionMode = "context";
       if (this.activeSuggestions.length === 0) {
         this.statusBarItem.setText("CP: no context candidates");
         return;
@@ -191,7 +192,7 @@ export default class ContextPrismPlugin extends Plugin {
       return;
     }
 
-    const suggestions = await this.getSuggestionsForFile(file);
+    const suggestions = await this.getSuggestionsForFile(file, "links");
     new SuggestionsModal(this.app, file, suggestions, this.settings, (count) => {
       new Notice(count === 0 ? "No links inserted." : `Inserted ${count} link${count === 1 ? "" : "s"}.`);
     }).open();
@@ -204,7 +205,7 @@ export default class ContextPrismPlugin extends Plugin {
       return;
     }
 
-    const suggestions = await this.getSuggestionsForFile(file);
+    const suggestions = await this.getSuggestionsForFile(file, "context");
     if (suggestions.length === 0) {
       new Notice("No context candidates matched the current note.");
       return;
@@ -236,7 +237,7 @@ export default class ContextPrismPlugin extends Plugin {
       return;
     }
 
-    const suggestions = await this.getSuggestionsForFile(file);
+    const suggestions = await this.getSuggestionsForFile(file, "context");
     new ContextPackReviewModal(this.app, {
       sourceFile: file,
       suggestions,
@@ -287,14 +288,17 @@ export default class ContextPrismPlugin extends Plugin {
     }, 350);
   }
 
-  private async getSuggestionsForFile(file: TFile): Promise<LinkSuggestion[]> {
-    if (this.activeSuggestionPath === file.path) {
+  private async getSuggestionsForFile(file: TFile, mode: SuggestionMode): Promise<LinkSuggestion[]> {
+    if (this.activeSuggestionPath === file.path && this.activeSuggestionMode === mode) {
       return this.activeSuggestions;
     }
 
-    const suggestions = await this.indexService.suggestFor(file);
+    const suggestions = await this.indexService.suggestFor(file, {
+      excludeExistingLinks: mode === "links"
+    });
     this.activeSuggestions = suggestions;
     this.activeSuggestionPath = file.path;
+    this.activeSuggestionMode = mode;
     return suggestions;
   }
 
@@ -302,4 +306,86 @@ export default class ContextPrismPlugin extends Plugin {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     return view?.file ?? null;
   }
+}
+
+type SuggestionMode = "links" | "context";
+
+const VALID_INDEX_LANGUAGES = new Set<string>([
+  "multilingual",
+  "en",
+  "es",
+  "fr",
+  "de",
+  "it",
+  "pt"
+]);
+
+function normalizeSettings(data: unknown): ContextPrismSettings {
+  if (!isRecord(data)) {
+    return { ...DEFAULT_SETTINGS };
+  }
+
+  return {
+    includeFolders: readStringArray(data.includeFolders, DEFAULT_SETTINGS.includeFolders),
+    excludeFolders: readStringArray(data.excludeFolders, DEFAULT_SETTINGS.excludeFolders),
+    indexLanguages: readIndexLanguages(data.indexLanguages, DEFAULT_SETTINGS.indexLanguages),
+    minScore: readNumber(data.minScore, DEFAULT_SETTINGS.minScore),
+    maxSuggestions: readNumber(data.maxSuggestions, DEFAULT_SETTINGS.maxSuggestions),
+    autoPrepareContext: readBoolean(data.autoPrepareContext, DEFAULT_SETTINGS.autoPrepareContext),
+    contextSuggestionCount: readNumber(data.contextSuggestionCount, DEFAULT_SETTINGS.contextSuggestionCount),
+    contextSnippetLength: readNumber(data.contextSnippetLength, DEFAULT_SETTINGS.contextSnippetLength),
+    contextTokenBudget: readNumber(data.contextTokenBudget, DEFAULT_SETTINGS.contextTokenBudget),
+    footerHeading: readString(data.footerHeading, DEFAULT_SETTINGS.footerHeading),
+    includeAliases: readBoolean(data.includeAliases, DEFAULT_SETTINGS.includeAliases),
+    includeFrontmatter: readBoolean(data.includeFrontmatter, DEFAULT_SETTINGS.includeFrontmatter),
+    useMetadataRanking: readBoolean(data.useMetadataRanking, DEFAULT_SETTINGS.useMetadataRanking),
+    metadataWeight: readNumber(data.metadataWeight, DEFAULT_SETTINGS.metadataWeight),
+    showScores: readBoolean(data.showScores, DEFAULT_SETTINGS.showScores),
+    lastSeenReleaseNotesVersion: readNullableString(
+      data.lastSeenReleaseNotesVersion,
+      DEFAULT_SETTINGS.lastSeenReleaseNotesVersion
+    )
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readStringArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const strings = value.filter((item): item is string => typeof item === "string");
+  return strings.length > 0 ? strings : fallback;
+}
+
+function readIndexLanguages(value: unknown, fallback: IndexLanguage[]): IndexLanguage[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const languages = value.filter((item): item is IndexLanguage => typeof item === "string" && isIndexLanguage(item));
+  return languages.length > 0 ? languages : fallback;
+}
+
+function isIndexLanguage(value: string): value is IndexLanguage {
+  return VALID_INDEX_LANGUAGES.has(value);
+}
+
+function readNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readString(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function readNullableString(value: unknown, fallback: string | null): string | null {
+  return typeof value === "string" || value === null ? value : fallback;
 }

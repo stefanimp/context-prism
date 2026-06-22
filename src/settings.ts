@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { DEFAULT_SETTINGS } from "./default-settings";
 import type ContextPrismPlugin from "./main";
-import type { IndexLanguage, ContextPrismSettings } from "./types";
+import type { IndexLanguage } from "./types";
 
 export { DEFAULT_SETTINGS };
 

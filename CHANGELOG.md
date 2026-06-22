@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.5.3
+
+- Separated link-suggestion retrieval from AI context-pack retrieval.
+- AI context packs now include and prioritize notes already linked from the source note.
+- Kept link suggestions focused on missing links by continuing to exclude existing links there.
+- Allowed short linked notes, such as decision logs and action registers, to appear in direct-copy context packs.
+- Expanded external-vault evaluation coverage for project-memory notes, multilingual decoys, and noisy adjacent research notes.
+- Cleaned release-audit warnings around command naming, settings loading, and an unused type import.
+
 ## 0.5.2
 
 - Replaced a vault-specific folder placeholder in settings with a generic example.

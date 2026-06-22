@@ -3,23 +3,28 @@ export interface ReleaseNoteItem {
   description: string;
 }
 
-export const RELEASE_NOTES_VERSION = "0.5.2";
+export const RELEASE_NOTES_VERSION = "0.5.3";
 
 export const RELEASE_NOTES: ReleaseNoteItem[] = [
   {
-    title: "Cleaner direct-copy context packs",
+    title: "Context packs now include linked project notes",
     description:
-      "The fast copy command now uses a stricter high-confidence selection so broad ranking noise is less likely to leave the vault."
+      "AI context packs now treat notes already linked from the source note as useful context instead of filtering them out like link suggestions."
   },
   {
-    title: "Review still shows the wider candidate list",
+    title: "Link suggestions stay focused on new links",
     description:
-      "Use the review command when you want to inspect, include, or exclude the broader ranked suggestions before copying."
+      "The link-suggestion workflow still hides links that already exist, so inserting internal links remains clean."
   },
   {
-    title: "Cleaner snippets from BOM files",
+    title: "Better project-memory packs",
     description:
-      "Markdown files that start with a UTF-8 byte order mark no longer leak frontmatter terms into ranking snippets."
+      "Short linked notes such as decision logs, action registers, failed approaches, and version history can now be included in direct-copy packs."
+  },
+  {
+    title: "Cleaner audit posture",
+    description:
+      "The release also removes audit warnings around command naming, settings loading, and an unused settings type import."
   }
 ];
 

@@ -6,6 +6,7 @@ import { IndexedNote, IndexStats, LinkSuggestion, ContextPrismSettings } from ".
 
 const TITLE_MENTION_BOOST = 0.12;
 const ALIAS_MENTION_BOOST = 0.04;
+const EXISTING_LINK_BOOST = 0.18;
 const SOURCE_TITLE_IN_TITLE_BOOST = 0.14;
 const SOURCE_TITLE_IN_METADATA_BOOST = 0.13;
 const SOURCE_TITLE_IN_TERMS_BOOST = 0.1;
@@ -21,10 +22,15 @@ const METADATA_FIELD_WEIGHT = 1;
 type MentionReason =
   | "title"
   | "alias"
+  | "existing-link"
   | "source-title-title"
   | "source-title-metadata"
   | "source-title-content"
   | null;
+
+interface SuggestionOptions {
+  excludeExistingLinks?: boolean;
+}
 
 export class LinkIndexService {
   private docs = new Map<string, IndexedNote>();
@@ -132,7 +138,7 @@ export class LinkIndexService {
     return this.stats;
   }
 
-  async suggestFor(file: TFile): Promise<LinkSuggestion[]> {
+  async suggestFor(file: TFile, options: SuggestionOptions = {}): Promise<LinkSuggestion[]> {
     await this.ensureIndex();
 
     const settings = this.getSettings();
@@ -144,14 +150,16 @@ export class LinkIndexService {
     const markdown = await this.app.vault.cachedRead(file);
     const normalizedSource = normalizePhrase(stripMarkdownForIndex(markdown, settings.includeFrontmatter));
     const existingTargets = this.readExistingLinkTargets(file);
+    const excludeExistingLinks = options.excludeExistingLinks ?? true;
     const suggestions: LinkSuggestion[] = [];
 
     for (const candidate of this.docs.values()) {
-      if (candidate.path === sourceDoc.path || existingTargets.has(candidate.path)) {
+      const existingTarget = existingTargets.has(candidate.path);
+      if (candidate.path === sourceDoc.path || (excludeExistingLinks && existingTarget)) {
         continue;
       }
 
-      const mention = this.getMentionSignal(normalizedSource, sourceDoc, candidate, settings);
+      const mention = this.getMentionSignal(normalizedSource, sourceDoc, candidate, settings, existingTarget);
       const metadataScore = settings.useMetadataRanking
         ? metadataOverlap(sourceDoc.metadataTerms, candidate.metadataTerms)
         : 0;
@@ -224,8 +232,13 @@ export class LinkIndexService {
     normalizedSource: string,
     sourceDoc: IndexedNote,
     candidate: IndexedNote,
-    settings: ContextPrismSettings
+    settings: ContextPrismSettings,
+    existingTarget: boolean
   ): { score: number; reason: MentionReason } {
+    if (existingTarget) {
+      return { score: EXISTING_LINK_BOOST, reason: "existing-link" };
+    }
+
     const candidateMention = this.getCandidateMentionSignal(normalizedSource, candidate);
     const sourceMention = getSourceTitleSignal(sourceDoc, candidate, settings);
 
@@ -442,6 +455,10 @@ function buildReasons(
 
   if (mentionReason === "alias") {
     reasons.push("Alias appears in the note");
+  }
+
+  if (mentionReason === "existing-link") {
+    reasons.push("Already linked from source note");
   }
 
   if (mentionReason === "source-title-title") {

@@ -257,6 +257,79 @@ describe("index ranking", () => {
     )).toBe(true);
   });
 
+  it("excludes existing links for link suggestions but includes them for AI context", async () => {
+    const source = file("Notes/Project Atlas.md");
+    const linkedRoadmap = file("Notes/Project Atlas Roadmap.md");
+    const genericNote = file("Notes/Project Notes.md");
+    const files = [source, linkedRoadmap, genericNote];
+
+    const markdown = new Map<string, string>([
+      [
+        source.path,
+        [
+          "# Project Atlas",
+          "Review [[Project Atlas Roadmap]] before planning the next retrieval release.",
+          "The context pack should keep implementation decisions close to the source."
+        ].join("\n")
+      ],
+      [
+        linkedRoadmap.path,
+        [
+          "# Project Atlas Roadmap",
+          "Ranking quality, context packs, and release decisions for Project Atlas."
+        ].join("\n")
+      ],
+      [
+        genericNote.path,
+        [
+          "# Project Notes",
+          "General planning reminders for unrelated projects and meetings."
+        ].join("\n")
+      ]
+    ]);
+
+    const caches = new Map<string, unknown>([
+      [
+        source.path,
+        {
+          frontmatter: { area: ["Work"], topics: ["Project Atlas"] },
+          links: [{ link: "Project Atlas Roadmap" }],
+          embeds: []
+        }
+      ],
+      [
+        linkedRoadmap.path,
+        {
+          frontmatter: { area: ["Work"], topics: ["Project Atlas", "Roadmap"] },
+          links: [],
+          embeds: []
+        }
+      ],
+      [
+        genericNote.path,
+        {
+          frontmatter: { area: ["Work"], topics: ["Projects"] },
+          links: [],
+          embeds: []
+        }
+      ]
+    ]);
+
+    const app = fakeApp(files, markdown, caches);
+    const service = new LinkIndexService(app as never, () => ({
+      ...DEFAULT_SETTINGS,
+      minScore: 0.05,
+      maxSuggestions: 8
+    }));
+
+    const linkSuggestions = await service.suggestFor(source as never);
+    const contextSuggestions = await service.suggestFor(source as never, { excludeExistingLinks: false });
+
+    expect(linkSuggestions.map((suggestion) => suggestion.targetPath)).not.toContain(linkedRoadmap.path);
+    expect(contextSuggestions[0].targetPath).toBe(linkedRoadmap.path);
+    expect(contextSuggestions[0].reasons).toContain("Already linked from source note");
+  });
+
   it("can disable metadata influence across ranking signals", async () => {
     const source = file("Notes/Launch Notes.md");
     const metadataOnlyMatch = file("Notes/Unrelated Archive.md");
@@ -331,7 +404,11 @@ function fakeApp(
     },
     metadataCache: {
       getFileCache: (target: FakeFile) => caches.get(target.path) ?? {},
-      getFirstLinkpathDest: () => null
+      getFirstLinkpathDest: (link: string) => {
+        const normalized = link.replace(/\\/g, "/").replace(/\.md$/i, "");
+        const basename = normalized.split("/").pop()?.toLowerCase() ?? normalized.toLowerCase();
+        return files.find((target) => target.basename.toLowerCase() === basename) ?? null;
+      }
     }
   };
 }

@@ -239,6 +239,23 @@ describe("context packs", () => {
     ]);
   });
 
+  it("allows short notes when they are already linked from the source note", () => {
+    const selected = selectDefaultContextCandidates([
+      {
+        ...candidate("Synthetic/Project Decision Log.md", 0.32, true, ["decision", "project"], 45),
+        reasons: [
+          "Already linked from source note",
+          "Shared terms: decision, project"
+        ]
+      },
+      candidate("Synthetic/Short Index.md", 0.31, true, ["project", "index"], 45)
+    ], 8);
+
+    expect(selected.map((suggestion) => suggestion.targetPath)).toEqual([
+      "Synthetic/Project Decision Log.md"
+    ]);
+  });
+
   it("generates a privacy-preserving feedback report without snippets or paths by default", () => {
     const report = buildFeedbackReport({
       sourceFile: { path: "Private/Project Atlas.md" } as never,

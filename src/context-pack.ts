@@ -334,7 +334,11 @@ function appendStableTokenBudget(
 }
 
 function isHighConfidenceContextCandidate(suggestion: LinkSuggestion): boolean {
-  if (suggestion.exactMatch && suggestion.estimatedTokens < MIN_EXACT_CONTEXT_TOKENS) {
+  if (
+    suggestion.exactMatch &&
+    suggestion.estimatedTokens < MIN_EXACT_CONTEXT_TOKENS &&
+    !isAlreadyLinkedCandidate(suggestion)
+  ) {
     return false;
   }
 
@@ -352,6 +356,10 @@ function isHighConfidenceContextCandidate(suggestion: LinkSuggestion): boolean {
   }
 
   return false;
+}
+
+function isAlreadyLinkedCandidate(suggestion: LinkSuggestion): boolean {
+  return suggestion.reasons.includes("Already linked from source note");
 }
 
 function isSpecificContextTerm(term: string): boolean {

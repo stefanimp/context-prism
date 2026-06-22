@@ -13,13 +13,22 @@ interface FakeFile {
 }
 
 const vaultPath = process.env.CONTEXT_PRISM_TEST_VAULT;
+const sourcePath = process.env.CONTEXT_PRISM_TEST_SOURCE;
+const expectedIncludes = parseExpectation(process.env.CONTEXT_PRISM_EXPECT_INCLUDE);
+const expectedExcludes = parseExpectation(process.env.CONTEXT_PRISM_EXPECT_EXCLUDE);
 const runIfVaultAvailable = vaultPath && existsSync(vaultPath) ? describe : describe.skip;
+const projectAtlasSourcePath = "Synthetic Vault/00 Maps/Project Atlas.md";
+const hasProjectAtlasFixture = vaultPath
+  ? existsSync(path.join(vaultPath, ...projectAtlasSourcePath.split("/")))
+  : false;
 
 runIfVaultAvailable("external vault evaluation", () => {
-  it("keeps the Project Atlas context pack focused on Project Atlas notes", async () => {
+  it.runIf(hasProjectAtlasFixture)("keeps the Project Atlas context pack focused on Project Atlas notes", async () => {
     const fixture = loadVault(vaultPath as string);
-    const source = fixture.files.find((file) => file.path === "Synthetic Vault/00 Maps/Project Atlas.md");
-    expect(source).toBeDefined();
+    const source = fixture.files.find((file) => file.path === projectAtlasSourcePath);
+    if (!source) {
+      throw new Error(`Missing external vault fixture source: ${projectAtlasSourcePath}`);
+    }
 
     const service = new LinkIndexService(fixture.app as never, () => ({
       ...DEFAULT_SETTINGS,
@@ -31,7 +40,7 @@ runIfVaultAvailable("external vault evaluation", () => {
       contextTokenBudget: 1800
     }));
 
-    const suggestions = await service.suggestFor(source as never);
+    const suggestions = await service.suggestFor(source as never, { excludeExistingLinks: false });
     const defaultSelectedPaths = createDefaultSelectedPaths({
       sourceFile: source as never,
       suggestions,
@@ -68,7 +77,60 @@ runIfVaultAvailable("external vault evaluation", () => {
     expect(markdown).toContain("Project Atlas");
     expect(markdown).not.toContain("Synthetic Meeting");
   });
+
+  it.runIf(sourcePath)("evaluates a configured source note without hardcoded vault paths", async () => {
+    const fixture = loadVault(vaultPath as string);
+    const source = fixture.files.find((file) => file.path === sourcePath);
+    if (!source) {
+      throw new Error(`Missing configured external vault source: ${sourcePath}`);
+    }
+
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      maxSuggestions: 12,
+      contextSuggestionCount: 8,
+      contextSnippetLength: 420,
+      contextTokenBudget: 1800
+    };
+    const service = new LinkIndexService(fixture.app as never, () => settings);
+    const suggestions = await service.suggestFor(source as never, { excludeExistingLinks: false });
+    const defaultSelectedPaths = createDefaultSelectedPaths({
+      sourceFile: source as never,
+      suggestions,
+      indexedVaultTokens: service.getEstimatedVaultTokens(),
+      settings
+    });
+    const selectedPaths = [...defaultSelectedPaths];
+
+    if (process.env.CONTEXT_PRISM_PRINT_EVAL === "1") {
+      console.info(JSON.stringify({
+        source: source.path,
+        selectedPaths,
+        topSuggestions: suggestions.slice(0, 8).map((suggestion) => ({
+          targetPath: suggestion.targetPath,
+          score: Number(suggestion.score.toFixed(3)),
+          reasons: suggestion.reasons,
+          sharedTerms: suggestion.sharedTerms
+        }))
+      }, null, 2));
+    }
+
+    for (const expected of expectedIncludes) {
+      expect(selectedPaths.some((targetPath) => targetPath.includes(expected))).toBe(true);
+    }
+
+    for (const expected of expectedExcludes) {
+      expect(selectedPaths.some((targetPath) => targetPath.includes(expected))).toBe(false);
+    }
+  });
 });
+
+function parseExpectation(value: string | undefined): string[] {
+  return (value ?? "")
+    .split("|")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
 
 function loadVault(root: string): {
   app: unknown;
