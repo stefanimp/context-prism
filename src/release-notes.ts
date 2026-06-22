@@ -3,7 +3,7 @@ export interface ReleaseNoteItem {
   description: string;
 }
 
-export const RELEASE_NOTES_VERSION = "0.5.1";
+export const RELEASE_NOTES_VERSION = "0.5.2";
 
 export const RELEASE_NOTES: ReleaseNoteItem[] = [
   {

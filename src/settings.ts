@@ -20,7 +20,7 @@ export class ContextPrismSettingTab extends PluginSettingTab {
       .setDesc("Comma-separated vault paths. Leave empty to index every Markdown file.")
       .addText((text) =>
         text
-          .setPlaceholder("2-Notes, Projects")
+          .setPlaceholder("Projects, Areas")
           .setValue(this.plugin.settings.includeFolders.join(", "))
           .onChange(async (value) => {
             this.plugin.settings.includeFolders = parseList(value);

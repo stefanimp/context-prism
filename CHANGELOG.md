@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.2
+
+- Replaced a vault-specific folder placeholder in settings with a generic example.
+- Re-audited the public repository and release assets for private paths, vault-specific files, and personal note references.
+
 ## 0.5.1
 
 - Tightened the fast `Copy AI context pack for current note` selection so direct-copy packs prefer high-confidence candidates instead of blindly copying the top ranked suggestions.

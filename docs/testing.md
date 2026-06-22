@@ -21,7 +21,7 @@ CONTEXT_PRISM_TEST_VAULT=/path/to/test-vault npm test -- tests/vault-evaluation.
 On Windows PowerShell:
 
 ```powershell
-$env:CONTEXT_PRISM_TEST_VAULT="C:\path\to\test-vault"; npx -p node@22.12.0 node .\node_modules\vitest\vitest.mjs run tests\vault-evaluation.test.ts
+$env:CONTEXT_PRISM_TEST_VAULT="$env:USERPROFILE\path\to\test-vault"; npx -p node@22.12.0 node .\node_modules\vitest\vitest.mjs run tests\vault-evaluation.test.ts
 ```
 
 ## Manual QA
