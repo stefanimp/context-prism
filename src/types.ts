@@ -16,6 +16,7 @@ export interface ContextPrismSettings {
   useMetadataRanking: boolean;
   metadataWeight: number;
   showScores: boolean;
+  lastSeenReleaseNotesVersion: string | null;
 }
 
 export interface IndexedNote {

@@ -1,6 +1,6 @@
 {
   "name": "context-prism",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Creates token-aware context packs from related notes.",
   "main": "main.js",
   "engines": {

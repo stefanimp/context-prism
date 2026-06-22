@@ -4,6 +4,7 @@
 
 - `LinkIndexService`: reads Markdown files, builds the index, and returns ranked suggestions.
 - `context-pack`: turns ranked candidates into a compact Markdown context pack for AI assistants.
+- `ContextPackReviewModal`: renders the temporary AI context review workflow and copies selected packs or feedback reports.
 - `token-estimator`: estimates token budgets from local text.
 - `text/normalize`: strips Markdown syntax, normalizes text, tokenizes, and removes language-specific stopwords.
 - `search/scoring`: contains pure ranking primitives.
@@ -49,6 +50,10 @@ This is intentionally lightweight. Context Prism does not translate notes, call 
 
 When a note becomes active, the plugin can prepare candidates in the background and show a status bar summary. The `Copy AI context pack for current note` command creates a compact Markdown artifact with paths, snippets, ranking reasons, estimated full-note tokens, and estimated avoided context.
 
+The `Review AI context pack for current note` command uses the same ranked candidate snapshot. It does not own index state or rerun retrieval on checkbox changes. Selection filtering, token summaries, and feedback-report generation are pure helpers in `context-pack`, while the modal only renders temporary selection state and invokes clipboard callbacks.
+
 ## Safety Model
 
 The plugin does not rewrite inline prose. It only appends accepted links to a configured section after user confirmation.
+
+AI context review is clipboard-based. The user decides which selected context pack leaves Obsidian. Feedback reports omit snippets and note bodies by default and only include paths when the user explicitly opts in.

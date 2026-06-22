@@ -46,3 +46,133 @@
 .context-prism-status {
   cursor: pointer;
 }
+
+.context-prism-context-review-modal {
+  max-width: min(780px, 92vw);
+}
+
+.context-prism-source-path,
+.context-prism-review-help,
+.context-prism-review-title,
+.context-prism-token-line,
+.context-prism-feedback-note,
+.context-prism-review-removed {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.context-prism-source-path {
+  overflow-wrap: anywhere;
+}
+
+.context-prism-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+  max-height: 48vh;
+  overflow-y: auto;
+}
+
+.context-prism-review-candidate {
+  border: 1px solid var(--context-prism-border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.context-prism-review-candidate-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+
+.context-prism-rank {
+  color: var(--text-muted);
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6em;
+}
+
+.context-prism-review-title-block {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.context-prism-review-path {
+  overflow-wrap: anywhere;
+}
+
+.context-prism-token-line {
+  margin-top: 8px;
+}
+
+.context-prism-review-footer {
+  border-top: 1px solid var(--context-prism-border);
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.context-prism-review-summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.context-prism-feedback-privacy {
+  margin-top: 12px;
+}
+
+.context-prism-feedback-privacy label {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.context-prism-release-notes-modal {
+  max-width: min(640px, 92vw);
+}
+
+.context-prism-release-notes-intro,
+.context-prism-release-notes-privacy {
+  color: var(--text-muted);
+}
+
+.context-prism-release-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+  padding-left: 20px;
+}
+
+.context-prism-release-notes-list li {
+  padding-left: 4px;
+}
+
+.context-prism-release-notes-list strong,
+.context-prism-release-notes-list span {
+  display: block;
+}
+
+.context-prism-release-notes-list span {
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 520px) {
+  .context-prism-context-review-modal {
+    max-width: 96vw;
+  }
+
+  .context-prism-review-candidate-header {
+    align-items: flex-start;
+  }
+
+  .context-prism-review-summary-line {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

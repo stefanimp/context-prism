@@ -1,8 +1,11 @@
 import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import { buildContextPack } from "./context-pack";
 import { LinkIndexService } from "./indexer";
+import { shouldShowReleaseNotes } from "./release-notes";
 import { DEFAULT_SETTINGS, ContextPrismSettingTab } from "./settings";
 import { formatTokenCount } from "./token-estimator";
+import { ContextPackReviewModal } from "./ui/context-pack-review-modal";
+import { ReleaseNotesModal } from "./ui/release-notes-modal";
 import { SuggestionsModal } from "./ui/suggestions-modal";
 import { LinkSuggestion, ContextPrismSettings } from "./types";
 
@@ -45,11 +48,27 @@ export default class ContextPrismPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: "review-ai-context-pack",
+      name: "Review AI context pack for current note",
+      callback: () => {
+        void this.openContextPackReviewForActiveFile();
+      }
+    });
+
+    this.addCommand({
       id: "rebuild-index",
       name: "Rebuild link index",
       callback: async () => {
         const stats = await this.indexService.rebuild();
         new Notice(`Indexed ${stats.notes} notes and ${stats.terms} terms.`);
+      }
+    });
+
+    this.addCommand({
+      id: "show-release-notes",
+      name: "Show what's new in Context Prism",
+      callback: () => {
+        this.openReleaseNotes();
       }
     });
 
@@ -86,6 +105,7 @@ export default class ContextPrismPlugin extends Plugin {
     );
     this.app.workspace.onLayoutReady(() => {
       this.scheduleContextPreparation();
+      void this.maybeShowReleaseNotes();
     });
   }
 
@@ -110,6 +130,27 @@ export default class ContextPrismPlugin extends Plugin {
   async saveSettingsAndInvalidateIndex(): Promise<void> {
     await this.saveSettings();
     this.indexService?.markDirty();
+  }
+
+  private async maybeShowReleaseNotes(): Promise<void> {
+    if (!shouldShowReleaseNotes(this.manifest.version, this.settings.lastSeenReleaseNotesVersion)) {
+      return;
+    }
+
+    this.openReleaseNotes();
+  }
+
+  private openReleaseNotes(): void {
+    new ReleaseNotesModal(this.app, {
+      version: this.manifest.version,
+      onDismiss: async () => {
+        this.settings.lastSeenReleaseNotesVersion = this.manifest.version;
+        await this.saveSettings();
+      },
+      onReviewCurrentNote: () => {
+        void this.openContextPackReviewForActiveFile();
+      }
+    }).open();
   }
 
   async prepareContextForActiveFile(): Promise<void> {
@@ -176,12 +217,63 @@ export default class ContextPrismPlugin extends Plugin {
       settings: this.settings
     });
 
-    await navigator.clipboard.writeText(markdown);
+    const copied = await this.writeClipboard(markdown);
+    if (!copied) {
+      return;
+    }
+
     new Notice(
       `Copied AI context pack: ~${formatTokenCount(stats.contextPackTokens)} tokens, ~${formatTokenCount(
         stats.estimatedTokensSaved
       )} avoided.`
     );
+  }
+
+  private async openContextPackReviewForActiveFile(): Promise<void> {
+    const file = this.getActiveMarkdownFile();
+    if (!file) {
+      new Notice("Open a Markdown note first.");
+      return;
+    }
+
+    const suggestions = await this.getSuggestionsForFile(file);
+    new ContextPackReviewModal(this.app, {
+      sourceFile: file,
+      suggestions,
+      indexedVaultTokens: this.indexService.getEstimatedVaultTokens(),
+      settings: this.settings,
+      pluginVersion: this.manifest.version,
+      onCopyContextPack: async (markdown, selectedCount, contextPackTokens) => {
+        const copied = await this.writeClipboard(markdown);
+        if (!copied) {
+          return;
+        }
+
+        new Notice(
+          `Copied selected context pack: ${selectedCount} note${selectedCount === 1 ? "" : "s"}, ~${formatTokenCount(
+            contextPackTokens
+          )} tokens.`
+        );
+      },
+      onCopyFeedbackReport: async (markdown) => {
+        const copied = await this.writeClipboard(markdown);
+        if (!copied) {
+          return;
+        }
+
+        new Notice("Copied feedback report template.");
+      }
+    }).open();
+  }
+
+  private async writeClipboard(markdown: string): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      return true;
+    } catch {
+      new Notice("Could not copy to clipboard. Please try again from Obsidian.");
+      return false;
+    }
   }
 
   private scheduleContextPreparation(): void {

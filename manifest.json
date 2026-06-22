@@ -1,7 +1,7 @@
 {
   "id": "context-prism",
   "name": "Context Prism",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "minAppVersion": "1.5.0",
   "description": "Creates token-aware context packs from related notes.",
   "author": "Stefan",

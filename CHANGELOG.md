@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.5.0
+
+- Added a reviewable AI context pack workflow with include and exclude decisions before copying.
+- Added selected-pack token summaries, per-candidate token estimates, and removed-default-pack estimates.
+- Added privacy-preserving feedback report copying for retrieval-quality issues.
+- Added a one-time "What's new" modal so users see major changes after updating.
+- Added a command to reopen the release notes manually from Obsidian.
+- Kept the fast `Copy AI context pack for current note` command unchanged.
+
 ## 0.4.1
 
 - Expanded public usage instructions for the AI context pack workflow.

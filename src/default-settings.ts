@@ -15,5 +15,6 @@ export const DEFAULT_SETTINGS: ContextPrismSettings = {
   includeFrontmatter: false,
   useMetadataRanking: true,
   metadataWeight: 0.08,
-  showScores: true
+  showScores: true,
+  lastSeenReleaseNotesVersion: null
 };

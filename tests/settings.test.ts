@@ -12,4 +12,8 @@ describe("default settings", () => {
     expect(DEFAULT_SETTINGS.metadataWeight).toBeGreaterThan(0);
     expect(DEFAULT_SETTINGS.metadataWeight).toBeLessThanOrEqual(0.1);
   });
+
+  it("has not marked release notes as seen on first load", () => {
+    expect(DEFAULT_SETTINGS.lastSeenReleaseNotesVersion).toBeNull();
+  });
 });
