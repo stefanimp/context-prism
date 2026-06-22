@@ -34,7 +34,7 @@ The retrieval step is intentionally lightweight. Context Prism combines TF-IDF a
 
 ## Commands
 
-- `Copy AI context pack for current note`: fast path that copies the default compact context pack.
+- `Copy AI context pack for current note`: fast path that copies a stricter high-confidence context pack.
 - `Review AI context pack for current note`: opens a review modal for the same ranked candidates so the user can include or exclude notes before copying the selected pack.
 - `Review link suggestions for current note`: opens the same candidates for optional link insertion.
 - `Rebuild link index`: rebuilds the local retrieval index.
@@ -45,7 +45,7 @@ Use `Review AI context pack for current note` when the exact context should be i
 
 The modal uses a stable candidate snapshot for the active source note. It does not rebuild the index, rerun ranking, call external services, or change ranking scores when checkboxes are toggled.
 
-The default selected candidates are the notes that the fast copy command would include. Users can clear, restore, or adjust the selection, then copy only the selected candidates in the original rank order.
+The default selected candidates are the notes that the fast copy command would include. This default is intentionally stricter than the full review list: weak operational candidates, very short title-only matches, and candidates with only low-signal shared terms are not preselected for direct copy. Users can clear, restore, or adjust the selection, then copy only the selected candidates in the original rank order.
 
 The footer shows selected note count, approximate selected context-pack tokens, and estimated avoided context. The avoided-context baseline remains the indexed vault token estimate minus the selected context-pack estimate; it is not a model-specific context-window saving.
 

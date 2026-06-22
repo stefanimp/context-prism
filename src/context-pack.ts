@@ -18,6 +18,38 @@ interface CandidateTokenInfo {
   estimatedPackBlockTokens: number;
 }
 
+const MIN_DIRECT_CONTEXT_SCORE = 0.2;
+const MIN_STRONG_DIRECT_CONTEXT_SCORE = 0.28;
+const MIN_EXACT_CONTEXT_TOKENS = 130;
+const MIN_SPECIFIC_SHARED_TERMS = 2;
+const LOW_SIGNAL_CONTEXT_TERMS = new Set([
+  "actualizacion",
+  "ai",
+  "area",
+  "antes",
+  "before",
+  "data",
+  "demo",
+  "estado",
+  "ia",
+  "local",
+  "project",
+  "projects",
+  "proyecto",
+  "proyectos",
+  "prueba",
+  "pruebas",
+  "sin",
+  "status",
+  "synthetic",
+  "test",
+  "tests",
+  "type",
+  "trabajo",
+  "update",
+  "work"
+]);
+
 export interface ContextPackReviewSummary {
   selectedCount: number;
   totalCount: number;
@@ -82,7 +114,10 @@ export function planDefaultContextPack(input: ContextPackInput): {
   suggestions: LinkSuggestion[];
   stats: ContextPackStats;
 } {
-  const selected = input.suggestions.slice(0, input.settings.contextSuggestionCount);
+  const selected = selectDefaultContextCandidates(
+    input.suggestions,
+    input.settings.contextSuggestionCount
+  );
   const header = [
     "# Context Prism Context Pack",
     "",
@@ -119,6 +154,29 @@ export function planDefaultContextPack(input: ContextPackInput): {
       estimatedTokensSaved
     }
   };
+}
+
+export function selectDefaultContextCandidates(
+  suggestions: LinkSuggestion[],
+  limit: number
+): LinkSuggestion[] {
+  const selected: LinkSuggestion[] = [];
+
+  for (const suggestion of suggestions) {
+    if (selected.length >= limit) {
+      break;
+    }
+
+    if (isHighConfidenceContextCandidate(suggestion)) {
+      selected.push(suggestion);
+    }
+  }
+
+  if (selected.length === 0 && suggestions.length > 0 && limit > 0) {
+    selected.push(suggestions[0]);
+  }
+
+  return selected;
 }
 
 export function createDefaultSelectedPaths(input: ContextPackInput): Set<string> {
@@ -273,6 +331,31 @@ function appendStableTokenBudget(
     contextPackTokens,
     estimatedTokensSaved
   };
+}
+
+function isHighConfidenceContextCandidate(suggestion: LinkSuggestion): boolean {
+  if (suggestion.exactMatch && suggestion.estimatedTokens < MIN_EXACT_CONTEXT_TOKENS) {
+    return false;
+  }
+
+  if (suggestion.score >= MIN_STRONG_DIRECT_CONTEXT_SCORE) {
+    return true;
+  }
+
+  if (suggestion.exactMatch && suggestion.score >= MIN_DIRECT_CONTEXT_SCORE) {
+    return true;
+  }
+
+  const specificSharedTerms = suggestion.sharedTerms.filter(isSpecificContextTerm);
+  if (specificSharedTerms.length >= MIN_SPECIFIC_SHARED_TERMS && suggestion.score >= MIN_DIRECT_CONTEXT_SCORE) {
+    return true;
+  }
+
+  return false;
+}
+
+function isSpecificContextTerm(term: string): boolean {
+  return !LOW_SIGNAL_CONTEXT_TERMS.has(term.toLowerCase());
 }
 
 function appendTokenBudget(

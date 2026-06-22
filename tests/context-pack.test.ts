@@ -5,6 +5,7 @@ import {
   buildSelectedContextPack,
   createDefaultSelectedPaths,
   filterSelectedSuggestions,
+  selectDefaultContextCandidates,
   summarizeContextPackReview
 } from "../src/context-pack";
 import { estimateTokens } from "../src/token-estimator";
@@ -174,6 +175,70 @@ describe("context packs", () => {
     expect(markdown).not.toContain("Notes/noisy.md");
   });
 
+  it("keeps direct-copy packs focused when broad suggestions include operational noise", () => {
+    const broadSuggestions: LinkSuggestion[] = [
+      candidate("Synthetic/Project Context Guide.md", 0.272, true, [
+        "vault",
+        "obsidian",
+        "enlaces",
+        "context",
+        "sin"
+      ]),
+      candidate("Synthetic/GitHub Portfolio Notes.md", 0.253, true, [
+        "github",
+        "context",
+        "prism",
+        "obsidian",
+        "profesional"
+      ]),
+      candidate("Synthetic/Public Launch Notes.md", 0.231, false, [
+        "obsidian",
+        "github",
+        "vault",
+        "publicacion",
+        "publicar"
+      ]),
+      candidate("Synthetic/Obsidian Starter Kit.md", 0.211, false, [
+        "obsidian",
+        "github",
+        "local",
+        "linkedin",
+        "publicado"
+      ]),
+      candidate("Synthetic/Unrelated Simulation Memo.md", 0.198, false, [
+        "ia",
+        "proyecto",
+        "sin",
+        "tests",
+        "demo"
+      ]),
+      candidate("Synthetic/Project Index.md", 0.184, true, [
+        "context",
+        "prism",
+        "proyecto",
+        "obsidian",
+        "proyectos"
+      ], 105),
+      candidate("Synthetic/Temporary Work Log.md", 0.177, false, [
+        "obsidian",
+        "sin",
+        "vault",
+        "local",
+        "actualizacion"
+      ])
+    ];
+
+    const selected = selectDefaultContextCandidates(broadSuggestions, 8);
+    const selectedPaths = selected.map((suggestion) => suggestion.targetPath);
+
+    expect(selectedPaths).toEqual([
+      "Synthetic/Project Context Guide.md",
+      "Synthetic/GitHub Portfolio Notes.md",
+      "Synthetic/Public Launch Notes.md",
+      "Synthetic/Obsidian Starter Kit.md"
+    ]);
+  });
+
   it("generates a privacy-preserving feedback report without snippets or paths by default", () => {
     const report = buildFeedbackReport({
       sourceFile: { path: "Private/Project Atlas.md" } as never,
@@ -207,3 +272,30 @@ describe("context packs", () => {
     expect(report).toContain("Notes/tfidf.md");
   });
 });
+
+function candidate(
+  targetPath: string,
+  score: number,
+  exactMatch: boolean,
+  sharedTerms: string[],
+  estimatedTokens = 700
+): LinkSuggestion {
+  return {
+    targetPath,
+    title: targetPath.split("/").pop()?.replace(/\.md$/i, "") ?? targetPath,
+    aliases: [],
+    score,
+    cosine: score / 2,
+    bm25: score / 2,
+    exactMatch,
+    metadataScore: 0.3,
+    sharedTerms,
+    reasons: [
+      ...(exactMatch ? ["Candidate content references source title"] : []),
+      "Shared metadata",
+      `Shared terms: ${sharedTerms.join(", ")}`
+    ],
+    snippet: `${targetPath} synthetic snippet for context pack testing.`,
+    estimatedTokens
+  };
+}

@@ -12,6 +12,18 @@ npm audit
 The test suite covers normalization and ranking primitives. UI behavior should be verified manually inside a development vault.
 Context-pack review helpers are covered with unit tests for default selection, selected filtering, summary values, feedback-report privacy, and fast-path regression behavior.
 
+Optional local vault evaluation:
+
+```bash
+CONTEXT_PRISM_TEST_VAULT=/path/to/test-vault npm test -- tests/vault-evaluation.test.ts
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:CONTEXT_PRISM_TEST_VAULT="C:\path\to\test-vault"; npx -p node@22.12.0 node .\node_modules\vitest\vitest.mjs run tests\vault-evaluation.test.ts
+```
+
 ## Manual QA
 
 1. Open a development vault with at least 20 Markdown notes.

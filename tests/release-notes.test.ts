@@ -17,7 +17,7 @@ describe("release notes", () => {
   });
 
   it("keeps release notes aligned with the release version", () => {
-    expect(RELEASE_NOTES_VERSION).toBe("0.5.0");
+    expect(RELEASE_NOTES_VERSION).toBe("0.5.1");
     expect(RELEASE_NOTES.length).toBeGreaterThanOrEqual(3);
   });
 });

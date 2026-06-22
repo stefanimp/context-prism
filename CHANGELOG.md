@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.5.1
+
+- Tightened the fast `Copy AI context pack for current note` selection so direct-copy packs prefer high-confidence candidates instead of blindly copying the top ranked suggestions.
+- Kept the review modal broad: `Review AI context pack for current note` still shows the wider candidate list so users can manually include borderline notes.
+- Fixed UTF-8 byte order mark handling so frontmatter is stripped correctly before indexing and snippet generation.
+- Added regression coverage for noisy operational candidates and an optional external-vault evaluation test.
+
 ## 0.5.0
 
 - Added a reviewable AI context pack workflow with include and exclude decisions before copying.

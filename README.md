@@ -66,12 +66,12 @@ After installing and enabling Context Prism:
 
 1. Open a Markdown note. The active note becomes the retrieval query.
 2. Check the status bar for prepared context candidates.
-3. For the fast path, run `Copy AI context pack for current note` from the command palette.
-4. For an intentional review path, run `Review AI context pack for current note`, inspect the ranked notes, include or exclude candidates, then copy the selected pack.
+3. For the fast path, run `Copy AI context pack for current note` from the command palette. This copies a stricter high-confidence subset of the ranked candidates.
+4. For an intentional review path, run `Review AI context pack for current note`, inspect the wider ranked list, include or exclude candidates, then copy the selected pack.
 5. Paste the generated Markdown pack into ChatGPT, Claude, Codex, Cursor, or another assistant before asking for analysis, writing help, or implementation planning.
 6. Ask the assistant to use the provided local candidates first before requesting broader vault context.
 
-The review modal is temporary and local to the current note snapshot. It shows paths, snippets, ranking reasons, estimated full-note tokens, estimated context-pack contribution, selected pack tokens, and estimated avoided context. It can also copy a privacy-preserving feedback report for ranking issues without including note bodies or snippets by default.
+The review modal is temporary and local to the current note snapshot. It shows paths, snippets, ranking reasons, estimated full-note tokens, estimated context-pack contribution, selected pack tokens, and estimated avoided context. It can also copy a privacy-preserving feedback report for ranking issues without including note bodies or snippets by default. Direct-copy packs are intentionally stricter than the review list to reduce accidental context noise.
 
 After updating to a version with major workflow changes, Context Prism shows a one-time "What's new" modal inside Obsidian. You can reopen it later with `Show what's new in Context Prism`.
 

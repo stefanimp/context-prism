@@ -36,4 +36,12 @@ describe("text normalization", () => {
     expect(normalizePhrase(text)).toContain("sistemas de recuperacion sri");
     expect(text).not.toContain("code");
   });
+
+  it("strips frontmatter when a file starts with a UTF-8 byte order mark", () => {
+    const text = stripMarkdownForIndex("\uFEFF---\ntype: note\ntopics: [Synthetic Test Data]\n---\n# Useful Body", false);
+
+    expect(text).toContain("Useful Body");
+    expect(text).not.toContain("Synthetic Test Data");
+    expect(text).not.toContain("type");
+  });
 });

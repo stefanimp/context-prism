@@ -172,6 +172,7 @@ const STOPWORDS_BY_LANGUAGE: Record<Exclude<IndexLanguage, "multilingual">, stri
 };
 
 const DIACRITICS = /[\u0300-\u036f]/g;
+const BYTE_ORDER_MARK = /^\uFEFF/;
 const FRONTMATTER = /^---\s*[\s\S]*?\s*---/;
 const FENCED_CODE = /```[\s\S]*?```/g;
 const INLINE_CODE = /`[^`]*`/g;
@@ -194,7 +195,10 @@ export function normalizePhrase(value: string): string {
 }
 
 export function stripMarkdownForIndex(markdown: string, includeFrontmatter: boolean): string {
-  const withoutFrontmatter = includeFrontmatter ? markdown : markdown.replace(FRONTMATTER, "");
+  const normalizedMarkdown = markdown.replace(BYTE_ORDER_MARK, "");
+  const withoutFrontmatter = includeFrontmatter
+    ? normalizedMarkdown
+    : normalizedMarkdown.replace(FRONTMATTER, "");
 
   return withoutFrontmatter
     .replace(FENCED_CODE, " ")

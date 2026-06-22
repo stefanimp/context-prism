@@ -3,23 +3,23 @@ export interface ReleaseNoteItem {
   description: string;
 }
 
-export const RELEASE_NOTES_VERSION = "0.5.0";
+export const RELEASE_NOTES_VERSION = "0.5.1";
 
 export const RELEASE_NOTES: ReleaseNoteItem[] = [
   {
-    title: "Review AI context packs before copying",
+    title: "Cleaner direct-copy context packs",
     description:
-      "Open the new review command to inspect ranked notes, snippets, ranking reasons, and token estimates before anything leaves Obsidian."
+      "The fast copy command now uses a stricter high-confidence selection so broad ranking noise is less likely to leave the vault."
   },
   {
-    title: "Include only the notes that deserve context",
+    title: "Review still shows the wider candidate list",
     description:
-      "Select or remove candidates, then copy a smaller context pack for ChatGPT, Claude, Codex, Cursor, or another assistant."
+      "Use the review command when you want to inspect, include, or exclude the broader ranked suggestions before copying."
   },
   {
-    title: "Share retrieval feedback without note bodies",
+    title: "Cleaner snippets from BOM files",
     description:
-      "Copy a privacy-preserving feedback report that omits snippets and note content by default."
+      "Markdown files that start with a UTF-8 byte order mark no longer leak frontmatter terms into ranking snippets."
   }
 ];
 
